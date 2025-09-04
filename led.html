@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LED Sign Tester</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --accent: #6366f1;
+      --accent-2: #22c55e;
+      --card: #0b1220;
+      --input: #1f2937;
+      --border: #334155;
+    }
+    body { margin:0; font-family: ui-sans-serif, system-ui; background:linear-gradient(180deg,var(--bg),#020617); color:var(--text); }
+    .wrap{max-width:1100px;margin:32px auto;padding:0 16px;}
+    .title{font-size:28px;font-weight:800;display:flex;align-items:center;gap:12px;}
+    .card{background:linear-gradient(180deg,var(--panel),var(--card));border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);margin-top:16px;}
+    .card-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+    .card-body{padding:20px;}
+    .grid{display:grid;gap:16px;}
+    .grid.cols-2{grid-template-columns:repeat(2,1fr);}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+    .grid.cols-4{grid-template-columns:repeat(4,1fr);}
+    @media(max-width:900px){.grid.cols-3,.grid.cols-4{grid-template-columns:1fr;}}
+    @media(max-width:700px){.grid.cols-2{grid-template-columns:1fr;}}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;}
+    input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--input);color:var(--text);}
+    textarea{min-height:70px;}
+    .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .btn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#0b1020;color:var(--text);text-decoration:none;}
+    .btn.primary{background:linear-gradient(180deg,var(--accent),#4f46e5);border:none;}
+    .btn.success{background:linear-gradient(180deg,var(--accent-2),#16a34a);border:none;}
+    .btn:hover{transform:translateY(-1px);}
+    .code{background:#0a1220;border:1px solid var(--border);padding:12px;border-radius:12px;white-space:pre-wrap;}
+    .muted{color:var(--muted);font-size:12px;}
+    .mono{font-family:monospace;}
+    .footer{color:var(--muted);font-size:12px;text-align:center;margin-top:24px;}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">🖥️ LED Sign Tester <span class="pill mono">GET → /led.php</span></div>
+
+  <div class="card"><div class="card-header"><strong>Connection & Panel</strong></div>
+    <div class="card-body grid cols-4">
+      <div><label for="DEVICE_IP">Device IP</label><input id="DEVICE_IP" value="10.0.0.146"/></div>
+      <div><label for="PANEL_W">Panel W</label><input id="PANEL_W" type="number" min="8" value="80"/></div>
+      <div><label for="PANEL_H">Panel H</label><input id="PANEL_H" type="number" min="8" value="20"/></div>
+      <div><label for="FONT">Font</label><input id="FONT" value="Courier"/></div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-header"><strong>Pages</strong></div>
+    <div class="card-body grid cols-2">
+      <div>
+        <label for="PAGE_A_TEXT">Page A Text</label><textarea id="PAGE_A_TEXT">System Down</textarea>
+        <div class="row" style="margin-top:8px;">
+          <div><label for="FONT_SIZE_A">Font Size A</label><select id="FONT_SIZE_A"></select></div>
+          <label><input id="FONT_TYPE_A" type="checkbox"/> Bold A</label>
+        </div>
+      </div>
+      <div>
+        <label for="PAGE_B_TEXT">Page B Text</label><textarea id="PAGE_B_TEXT">Ask Cashier</textarea>
+        <div class="row" style="margin-top:8px;">
+          <div><label for="FONT_SIZE_B">Font Size B</label><select id="FONT_SIZE_B"></select></div>
+          <label><input id="FONT_TYPE_B" type="checkbox"/> Bold B</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-header"><strong>Appearance & Timing</strong><span class="muted">Color and program duration</span></div>
+    <div class="card-body grid cols-3">
+      <div><label for="COLOR_TEXT">Color (named or hex)</label><input id="COLOR_TEXT" placeholder="YELLOW or #FFFF00"/></div>
+      <div><label for="COLOR_PICK">Color Picker</label><input id="COLOR_PICK" type="color" value="#ffff00"/></div>
+      <div><label for="PROGRAM_DURATION">Duration (seconds)</label><select id="PROGRAM_DURATION"></select></div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-header"><strong>Actions</strong></div>
+    <div class="card-body">
+      <div class="row" style="margin-bottom:10px;">
+        <button class="btn" id="buildBtn">Build URL</button>
+        <a class="btn" id="openUrl" target="_blank" rel="noopener">Open</a>
+        <button class="btn primary" id="sendBtn">Send</button>
+        <button class="btn" id="copyBtn">Copy URL</button>
+      </div>
+      <div class="code mono" id="urlBox">GET URL will appear here…</div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-header"><strong>Save & Send Presets</strong><span class="muted">Store named URLs in your browser</span></div>
+    <div class="card-body">
+      <div class="row" style="gap:8px; margin-bottom:12px;">
+        <input id="SAVE_NAME" placeholder="Preset name (e.g., 'Yellow 30s')" style="flex:1; min-width:280px;"/>
+        <button class="btn" id="saveBtn">Save current URL</button>
+      </div>
+      <div id="savedList" class="grid cols-1"></div>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-header"><strong>Response</strong><span class="muted">JSON result and the XML the server sent</span></div>
+    <div class="card-body grid cols-2">
+      <div>
+        <label>JSON Response</label>
+        <div class="code mono" id="jsonOut">—</div>
+      </div>
+      <div>
+        <label>sentProgramXml</label>
+        <div class="row" style="margin: 6px 0;">
+          <button class="btn" id="copyXmlBtn">Copy XML</button>
+        </div>
+        <div class="code mono" id="xmlOut">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Tip: Leave font sizes blank to auto-fit. Check “Bold” to send <span class="mono">FONT_TYPE_*=bold</span>.</div>
+</div>
+
+<script>
+// Populate size dropdowns 8..30 (blank = Auto)
+function fillFontSizes(sel){
+  sel.innerHTML='';
+  const opt=document.createElement('option'); opt.value=''; opt.textContent='Auto'; sel.appendChild(opt);
+  for(let i=8;i<=30;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i+' px'; sel.appendChild(o); }
+}
+fillFontSizes(document.getElementById('FONT_SIZE_A'));
+fillFontSizes(document.getElementById('FONT_SIZE_B'));
+
+// Duration 1..30 seconds
+const durSel=document.getElementById('PROGRAM_DURATION');
+for(let i=1;i<=30;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i+'s'; durSel.appendChild(o); }
+durSel.value='1';
+
+const qs=(id)=>document.getElementById(id);
+
+function resolveColor(){ const t=qs('COLOR_TEXT').value.trim(); return t || qs('COLOR_PICK').value; }
+
+function buildUrl(){
+  const base='http://localhost/led.php';
+  const p=new URLSearchParams();
+  p.set('DEVICE_IP',qs('DEVICE_IP').value.trim());
+  p.set('PANEL_W',qs('PANEL_W').value.trim());
+  p.set('PANEL_H',qs('PANEL_H').value.trim());
+  p.set('FONT',qs('FONT').value.trim());
+  const a=qs('PAGE_A_TEXT').value; if(a) p.set('PAGE_A_TEXT',a);
+  const b=qs('PAGE_B_TEXT').value; if(b) p.set('PAGE_B_TEXT',b);
+  if(qs('FONT_SIZE_A').value) p.set('FONT_SIZE_A',qs('FONT_SIZE_A').value);
+  if(qs('FONT_SIZE_B').value) p.set('FONT_SIZE_B',qs('FONT_SIZE_B').value);
+  if(qs('FONT_TYPE_A').checked) p.set('FONT_TYPE_A','bold');
+  if(qs('FONT_TYPE_B').checked) p.set('FONT_TYPE_B','bold');
+  p.set('COLOR',resolveColor());
+  p.set('PROGRAM_DURATION',qs('PROGRAM_DURATION').value);
+  const url=base+'?'+p.toString();
+  qs('urlBox').textContent=url; qs('openUrl').href=url;
+  return url;
+}
+
+function safeJson(obj){ try{return JSON.stringify(obj,null,2);}catch(e){ return String(obj); } }
+
+async function send(){
+  const url=buildUrl();
+  qs('jsonOut').textContent='Loading…';
+  qs('xmlOut').textContent='—';
+  try {
+    const r=await fetch(url);
+    const d=await r.json();
+    qs('jsonOut').textContent=safeJson(d);
+    qs('xmlOut').textContent=(d.sentProgramXml)||'—';
+  } catch(e){ qs('jsonOut').textContent='Request error:'+e; }
+}
+
+qs('buildBtn').addEventListener('click',e=>{e.preventDefault();buildUrl();});
+qs('sendBtn').addEventListener('click',e=>{e.preventDefault();send();});
+qs('copyBtn').addEventListener('click',e=>{e.preventDefault();navigator.clipboard.writeText(qs('urlBox').textContent);});
+qs('copyXmlBtn').addEventListener('click',e=>{e.preventDefault();navigator.clipboard.writeText(qs('xmlOut').textContent);});
+
+// --- Presets (localStorage, more reliable than cookies) ---
+const KEY='led_saved_presets_v2';
+function saveList(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
+function loadList(){ try{ return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } }
+function renderSaved(){
+  const list=loadList();
+  const c=qs('savedList'); c.innerHTML='';
+  if(!list.length){ c.innerHTML='<div class="muted">No presets.</div>'; return; }
+  list.forEach((it,i)=>{
+    const row=document.createElement('div');
+    row.className='row';
+    row.style.justifyContent='space-between';
+    row.style.border='1px solid var(--border)';
+    row.style.borderRadius='8px';
+    row.style.padding='8px';
+    row.innerHTML = `<div><strong>${it.name}</strong><div class="mono" style="font-size:12px;max-width:520px;overflow:hidden;text-overflow:ellipsis;">${it.url}</div></div>
+                     <div><a class="btn" href="${it.url}" target="_blank" rel="noopener">Open</a> <button class="btn success" data-send=${i}>Send</button> <button class="btn" data-del=${i}>Delete</button></div>`;
+    c.appendChild(row);
+  });
+}
+qs('saveBtn').addEventListener('click',()=>{
+  const n=qs('SAVE_NAME').value.trim();
+  const u=qs('urlBox').textContent.trim();
+  if(!n||!u){ alert('Build a URL and enter a name first'); return; }
+  let list=loadList();
+  const ex=list.findIndex(x=>x.name===n);
+  if(ex>=0) list[ex]={name:n,url:u}; else list.unshift({name:n,url:u});
+  saveList(list); renderSaved(); qs('SAVE_NAME').value='';
+});
+qs('savedList').addEventListener('click', async e=>{
+  const t=e.target; const send=t.getAttribute('data-send'); const del=t.getAttribute('data-del');
+  let list=loadList();
+  if(send!==null){
+    const item=list[Number(send)];
+    try{ qs('jsonOut').textContent='Loading…'; const r=await fetch(item.url); const d=await r.json(); qs('jsonOut').textContent=safeJson(d); qs('xmlOut').textContent=(d.sentProgramXml)||'—'; }
+    catch(err){ qs('jsonOut').textContent='Request error:'+err; }
+  }
+  if(del!==null){ list.splice(Number(del),1); saveList(list); renderSaved(); }
+});
+
+// Initial
+buildUrl();
+renderSaved();
+</script>
+</body>
+</html>
