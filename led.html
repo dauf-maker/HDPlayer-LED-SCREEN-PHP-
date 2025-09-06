@@ -51,7 +51,23 @@
       <div><label for="DEVICE_IP">Device IP</label><input id="DEVICE_IP" value="10.0.0.146"/></div>
       <div><label for="PANEL_W">Panel W</label><input id="PANEL_W" type="number" min="8" value="80"/></div>
       <div><label for="PANEL_H">Panel H</label><input id="PANEL_H" type="number" min="8" value="20"/></div>
-      <div><label for="FONT">Font</label><input id="FONT" value="Courier"/></div>
+      <div>
+        <label for="FONT">Font</label>
+        <select id="FONT">
+          <option value="Courier">Courier</option>
+          <option value="Times">Times</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Helvetica">Helvetica</option>
+          <option value="Arial">Arial</option>
+          <option value="Verdana">Verdana</option>
+          <option value="Tahoma" selected>Tahoma</option>
+          <option value="Trebuchet MS">Trebuchet MS</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+          <option value="Lucida Console">Lucida Console</option>
+          <option value="Garamond">Garamond</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -176,12 +192,41 @@ async function send(){
   } catch(e){ qs('jsonOut').textContent='Request error:'+e; }
 }
 
+// Restore form values from URL
+function applyParamsFromUrl(url) {
+  try {
+    const u = new URL(url);
+    const p = u.searchParams;
+    const set = (id, val) => { if (qs(id) && val!==null) qs(id).value = val; };
+    const check = (id, val) => { if (qs(id)) qs(id).checked = (val === 'bold'); };
+
+    set('DEVICE_IP', p.get('DEVICE_IP'));
+    set('PANEL_W', p.get('PANEL_W'));
+    set('PANEL_H', p.get('PANEL_H'));
+    set('FONT', p.get('FONT') || 'Tahoma');
+
+    set('PAGE_A_TEXT', p.get('PAGE_A_TEXT'));
+    set('PAGE_B_TEXT', p.get('PAGE_B_TEXT'));
+
+    set('FONT_SIZE_A', p.get('FONT_SIZE_A'));
+    set('FONT_SIZE_B', p.get('FONT_SIZE_B'));
+    check('FONT_TYPE_A', p.get('FONT_TYPE_A'));
+    check('FONT_TYPE_B', p.get('FONT_TYPE_B'));
+
+    set('COLOR_TEXT', p.get('COLOR'));
+    set('PROGRAM_DURATION', p.get('PROGRAM_DURATION'));
+  } catch (err) {
+    console.warn("applyParamsFromUrl failed", err);
+  }
+}
+
+// --- Buttons ---
 qs('buildBtn').addEventListener('click',e=>{e.preventDefault();buildUrl();});
 qs('sendBtn').addEventListener('click',e=>{e.preventDefault();send();});
 qs('copyBtn').addEventListener('click',e=>{e.preventDefault();navigator.clipboard.writeText(qs('urlBox').textContent);});
 qs('copyXmlBtn').addEventListener('click',e=>{e.preventDefault();navigator.clipboard.writeText(qs('xmlOut').textContent);});
 
-// --- Presets (localStorage, more reliable than cookies) ---
+// --- Presets ---
 const KEY='led_saved_presets_v2';
 function saveList(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
 function loadList(){ try{ return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } }
@@ -197,7 +242,7 @@ function renderSaved(){
     row.style.borderRadius='8px';
     row.style.padding='8px';
     row.innerHTML = `<div><strong>${it.name}</strong><div class="mono" style="font-size:12px;max-width:520px;overflow:hidden;text-overflow:ellipsis;">${it.url}</div></div>
-                     <div><a class="btn" href="${it.url}" target="_blank" rel="noopener">Open</a> <button class="btn success" data-send=${i}>Send</button> <button class="btn" data-del=${i}>Delete</button></div>`;
+                     <div><button class="btn" data-load=${i}>Load</button> <a class="btn" href="${it.url}" target="_blank" rel="noopener">Open</a> <button class="btn success" data-send=${i}>Send</button> <button class="btn" data-del=${i}>Delete</button></div>`;
     c.appendChild(row);
   });
 }
@@ -211,10 +256,21 @@ qs('saveBtn').addEventListener('click',()=>{
   saveList(list); renderSaved(); qs('SAVE_NAME').value='';
 });
 qs('savedList').addEventListener('click', async e=>{
-  const t=e.target; const send=t.getAttribute('data-send'); const del=t.getAttribute('data-del');
+  const t=e.target;
+  const load=t.getAttribute('data-load');
+  const send=t.getAttribute('data-send');
+  const del=t.getAttribute('data-del');
   let list=loadList();
+
+  if(load!==null){
+    const item=list[Number(load)];
+    applyParamsFromUrl(item.url);
+    buildUrl();
+  }
   if(send!==null){
     const item=list[Number(send)];
+    applyParamsFromUrl(item.url);
+    buildUrl();
     try{ qs('jsonOut').textContent='Loading…'; const r=await fetch(item.url); const d=await r.json(); qs('jsonOut').textContent=safeJson(d); qs('xmlOut').textContent=(d.sentProgramXml)||'—'; }
     catch(err){ qs('jsonOut').textContent='Request error:'+err; }
   }
